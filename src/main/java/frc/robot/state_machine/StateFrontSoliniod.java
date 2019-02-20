@@ -1,16 +1,18 @@
 package frc.robot.state_machine;
 
-import edu.wpi.first.wpilibj.drive.MecanumDrive;
+import edu.wpi.first.wpilibj.DoubleSolenoid;
+import edu.wpi.first.wpilibj.DoubleSolenoid.Value;
 
 public class StateFrontSoliniod extends StateWait {
 
-    private MecanumDrive m_MecanumDrive;
-    private double m_speed;
+    private DoubleSolenoid m_solenoid;
+    private Value m_position;
 
-    public StateFrontSoliniod(MecanumDrive mecanumDrive, double speed, double nSeconds) {
+    public StateFrontSoliniod(DoubleSolenoid solenoid, DoubleSolenoid.Value position , double nSeconds) {     
         super(nSeconds);
-        m_MecanumDrive = mecanumDrive;
-        m_speed = speed;
+        m_solenoid = solenoid;
+        m_position = position;
+        
     }
 
     @Override
@@ -20,7 +22,7 @@ public class StateFrontSoliniod extends StateWait {
 
     @Override
     public void execute() {
-        m_MecanumDrive.driveCartesian(m_speed, 0, 0);
+        m_solenoid.set(m_position);
     }
 
 }
