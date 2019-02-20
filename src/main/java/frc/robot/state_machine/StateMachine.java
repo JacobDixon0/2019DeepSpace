@@ -6,6 +6,7 @@ public class StateMachine implements State {
 
     private Vector<State> states;
     private int index;
+    private boolean firstRun;
 
     StateMachine() {
         reset();
@@ -29,11 +30,23 @@ public class StateMachine implements State {
     public void execute() {
         if (index < states.size()) {
             State currentState = states.get(index);
+
+            // handle initial case
+            if (firstRun) { 
+                currentState.enter();
+                firstRun = false;
+            }
+
             currentState.execute();
+
             if (currentState.isDone()) {
                 states.get(index).exit();
                 index += 1;
-                states.get(index).enter();
+                
+                // handle last case
+                if (index < states.size()) {  
+                    states.get(index).enter();
+                }                        
             }
         }
     }
@@ -44,5 +57,6 @@ public class StateMachine implements State {
     }
     public void reset() {
         index = 0;
+        firstRun = true;
     }
 }
