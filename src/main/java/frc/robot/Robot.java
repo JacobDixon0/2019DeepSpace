@@ -134,38 +134,14 @@ public class Robot extends TimedRobot {
     // Use the joystick X axis for lateral movement, Y axis for forward
     // movement, and Z axis for rotation.
 
-    if(m_stick.getRawButtonPressed(3)){
-      specialHalf = false;
-      half = !half;
-    }
-    /*if(m_stick.getRawButtonPressed(4)){
-      half = false;
-      specialHalf = !specialHalf;
-    }*/
-    if(m_stick.getRawButtonPressed(5)){
-      specialHalf = false;
-      half = false;
-    }
-    half = true;
-    SmartDashboard.putBoolean("half", half);
     
-    // twist joystick
+    double speed = 0.0;
+    if (m_stick.getRawButton(1)) {
+      speed = 1.0; // Overddrive (press trigger)
+    } else {
+      speed = 0.70; // Normal case (70%)
+    }
 
-    if(half){
-      speed = 0.5;
-      SmartDashboard.putString("speed", "Half");
-    }
-    //if(specialHalf == true){
-      //speed = m_stick.getTwist()*-0.5+0.5;
-      //SmartDashboard.putString("speed", "AllSpeed");
-    //}
-    else{
-      speed = 1;
-      SmartDashboard.putString("speed", "normal");
-    }
-    if(!half && !specialHalf){
-      SmartDashboard.putString("speed", "normal");
-    }
     m_robotDrive.driveCartesian(-speed*m_stick.getX(),
                                 speed*m_stick.getY(),
                                 -speed*m_stick.getThrottle());
