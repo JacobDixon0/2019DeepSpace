@@ -142,7 +142,17 @@ public class Robot extends TimedRobot {
       speed = 0.70; // Normal case (70%)
     }
 
-    m_robotDrive.driveCartesian(-speed*m_stick.getX(),
+
+    double x = m_stick.getX();
+    if (x < 0) {
+      x = -x*x;
+    }
+    else {
+      x = x*x;
+    }
+
+
+    m_robotDrive.driveCartesian(-speed*x,
                                 speed*m_stick.getY(),
                                 -speed*m_stick.getThrottle());
 
