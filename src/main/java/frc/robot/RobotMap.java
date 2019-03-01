@@ -25,7 +25,8 @@ public class RobotMap {
     public static final int kElevatorRight = 25;
 
     // Digital Inputs
-    public static final int kLimitSwitch = 0;
+    public static final int kLimitSwitchBottom = 0;
+    public static final int kLimitSwitchTop = 1;
 
     // Pneumatic Module
     public static final int kSolenoidModule = 2;

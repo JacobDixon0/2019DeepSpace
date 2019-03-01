@@ -22,6 +22,7 @@ package frc.robot;
   import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
   import io.github.pseudoresonance.pixy2api.Pixy2;
   import io.github.pseudoresonance.pixy2api.links.I2CLink;
+  import frc.robot.state_machine.StateDriveY;
   import frc.robot.state_machine.StateMachine;
   import frc.robot.state_machine.StateWait;
   
@@ -55,7 +56,9 @@ public class Robot extends TimedRobot {
   // Elevator
   private WPI_TalonSRX m_elevatorLeft;
   private WPI_TalonSRX m_elevatorRight;
-  private DigitalInput m_limitSwitch;
+  private DigitalInput m_limitSwitchBottom;
+  private DigitalInput m_limitSwitchTop;
+  private int elevatorPosition = 0;
 
   // Camera
   private Pixy2 m_pixy2;
@@ -64,7 +67,7 @@ public class Robot extends TimedRobot {
   private boolean m_startClimb = false; 
   private boolean half;
   private boolean specialHalf;
-  private double speed;
+  private double  speed;
   
   // Autonomous
   private StateMachine sm;
@@ -109,14 +112,15 @@ public class Robot extends TimedRobot {
     m_elevatorLeft = new WPI_TalonSRX(RobotMap.kElevatorLeft);
     m_elevatorRight = new WPI_TalonSRX(RobotMap.kElevatorRight);
     m_elevatorRight.setInverted(true);
-    m_limitSwitch = new DigitalInput(RobotMap.kLimitSwitch);
+    m_limitSwitchBottom = new DigitalInput(RobotMap.kLimitSwitchBottom);
+    m_limitSwitchTop = new DigitalInput(RobotMap.kLimitSwitchTop);
 
     //Pixy2 pixy2 = Pixy2.createInstance(Pixy2.LinkType.I2C);
     //pixy2.init();
     //Testing pixy2 LED Color
 
-    sm.addState(new StateWait(1));
-    sm.addState(new StateWait(2));
+    //sm.addState(new StateWait(1));
+    //sm.addState(new StateDriveY(m_robotDrive, 1, 1));
 
   }
 
@@ -151,10 +155,28 @@ public class Robot extends TimedRobot {
       x = x*x;
     }
 
+    double z = m_stick.getThrottle();
+    if (z < 0) {
+      z = -z*z;
+    }
+    else {
+      z = z*z;
+    }
 
+    
+    double y = m_stick.getY();
+    if (y < 0) {
+      y = -y*y;
+    }
+    else {
+      y = y*y;
+    }
     m_robotDrive.driveCartesian(-speed*x,
-                                speed*m_stick.getY(),
-                                -speed*m_stick.getThrottle());
+                                speed*y,
+                                -speed*z);
+
+  
+
 
 
 
@@ -169,8 +191,40 @@ public class Robot extends TimedRobot {
     SmartDashboard.putNumber("speed?", m_stick.getTwist()*-0.5+0.5);
     
       
+    // Elivator
     
-     if (m_gamePad.getRawButton(1)) {
+    if (m_gamePad.getRawButtonPressed(1)) {
+      elevatorPosition = 0;
+    }
+    if (m_gamePad.getRawButtonPressed(2)) {
+      elevatorPosition = 1;
+    }
+
+    if (elevatorPosition == 0) {
+     
+      m_elevatorLeft.set(-0.7);
+      m_elevatorRight.set(-0.7);
+
+      if (!m_limitSwitchBottom.get()){
+       elevatorPosition = 2;
+    }
+  }
+  /*
+    if (elevatorPosition == 1) {
+     
+      m_elevatorLeft.set(0.7);
+      m_elevatorRight.set(0.7);
+
+      if (!m_limitSwitchTop.get()){
+        elevatorPosition = 2;
+    }
+  }
+*/
+     //limit switchs
+    /*
+    }*/
+
+    if (m_gamePad.getRawButton(1)) {
       m_elevatorLeft.set(0.7);
       m_elevatorRight.set(0.7);
     }
@@ -207,7 +261,7 @@ public class Robot extends TimedRobot {
      }else{
        m_kicker.set(DoubleSolenoid.Value.kReverse);
      }
-
+/*
 
 
     if (m_gamePad.getRawButton(4)) {
@@ -216,7 +270,17 @@ public class Robot extends TimedRobot {
     if (m_gamePad.getRawButtonReleased(4)) {
       sm.reset();
     }
-        
+      boolean climb = false;
+
+    if (m_gamePad.getRawButton(7) & m_gamePad.getRawButton(8)){
+      climb = true;
+    }
+    if (climb){
+      
+    }
+
+*/
+
     /*
     
 
@@ -238,11 +302,7 @@ public class Robot extends TimedRobot {
     
     
    
-    //limit switchs
-    /*if (!limitSwitch.get()){
-      m_robotDrive.driveCartesian(1, 0, 0);
-      System.out.println("LIMIT");
-    }*/
+   
 
     //Time Variables (1.0 IS PLACEHOLDER TIME FOR NOW) 
     /*
@@ -281,6 +341,7 @@ public class Robot extends TimedRobot {
     }*/
   }     
 }
+
 
 
 
