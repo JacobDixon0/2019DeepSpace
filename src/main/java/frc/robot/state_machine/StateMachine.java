@@ -8,7 +8,8 @@ public class StateMachine implements State {
     private int index;
     private boolean firstRun;
 
-    StateMachine() {
+    public StateMachine() {
+        states = new Vector<State>();
         reset();
     }
 
@@ -17,14 +18,10 @@ public class StateMachine implements State {
     }
 
     @Override
-    public void enter() {
-        reset();
-    }
+    public void enter() { }
 
     @Override
-    public void exit() {
-
-    }
+    public void exit() { }
 
     @Override
     public void execute() {

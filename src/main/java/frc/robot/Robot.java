@@ -8,28 +8,25 @@
 package frc.robot;
 
   import edu.wpi.first.cameraserver.CameraServer;
-  import edu.wpi.first.wpilibj.AnalogGyro;
   import edu.wpi.first.wpilibj.DigitalInput;
   import edu.wpi.first.wpilibj.DoubleSolenoid;
   import edu.wpi.first.wpilibj.Joystick;
   import edu.wpi.first.wpilibj.PWMTalonSRX;
   import edu.wpi.first.wpilibj.RobotDrive;
+  import edu.wpi.first.wpilibj.Spark;
   import edu.wpi.first.wpilibj.TimedRobot;
-  import edu.wpi.first.wpilibj.Timer;
   import edu.wpi.first.wpilibj.DoubleSolenoid.Value;
   import edu.wpi.first.wpilibj.drive.MecanumDrive;
   import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
   import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
   import io.github.pseudoresonance.pixy2api.Pixy2;
   import io.github.pseudoresonance.pixy2api.links.I2CLink;
-  import frc.robot.state_machine.StateDriveY;
-  import frc.robot.state_machine.StateMachine;
-  import frc.robot.state_machine.StateWait;
+  import frc.robot.state_machine.*;
   
 
   import frc.robot.RobotMap;
 
-  import com.ctre.phoenix.motorcontrol.can.WPI_TalonSRX;
+  //import com.ctre.phoenix.motorcontrol.can.WPI_TalonSRX;
   
 
 public class Robot extends TimedRobot {
@@ -37,40 +34,71 @@ public class Robot extends TimedRobot {
   // Controls 
   private Joystick m_stick;
   private Joystick m_gamePad;
-  private Joystick spinJoystick;
 
   // Robot
   private MecanumDrive m_robotDrive;
-  private AnalogGyro m_gyro;
-  private Timer m_timer;
   
   // End effector
   private DoubleSolenoid m_bumperReach;
   private DoubleSolenoid m_kicker;
-  private DoubleSolenoid m_lock;
   
   // Climber
   private DoubleSolenoid m_frontSolenoid;
   private DoubleSolenoid m_backSolenoid;
   
   // Elevator
-  private WPI_TalonSRX m_elevatorLeft;
-  private WPI_TalonSRX m_elevatorRight;
+  //private WPI_TalonSRX m_elevatorLeft;
+  //private WPI_TalonSRX m_elevatorRight;
+  private Spark m_elevatorLeft;
+  private Spark m_elevatorRight;
+
   private DigitalInput m_limitSwitchBottom;
   private DigitalInput m_limitSwitchTop;
-  private int elevatorPosition = 0;
-
+  private enum ElevatorDirection {STOPPED, UP, DOWN};
+  private ElevatorDirection elevatorPosition = ElevatorDirection.STOPPED;
+  
   // Camera
   private Pixy2 m_pixy2;
   
   // State
   private boolean m_startClimb = false; 
-  private boolean half;
-  private boolean specialHalf;
-  private double  speed;
+  
   
   // Autonomous
   private StateMachine sm;
+
+
+  private StateMachine buildStateMachine() {
+    StateMachine sm = new StateMachine();
+
+    // Lift the front of the robot onto the platform
+    sm.addState(new StateDriveY(m_robotDrive, -0.4, 1.0));
+    sm.addState(new StateSoliniod(m_frontSolenoid, Value.kForward, 1.0));
+    sm.addState(new StateDriveY(m_robotDrive, 0.4, 1.0));
+
+    // Retract front and extend back (lifting back of robot onto platform)
+    StateGroup sg = new StateGroup();
+    sg.addState(new StateSoliniod(m_frontSolenoid, Value.kReverse, 1.0));
+    sg.addState(new StateSoliniod(m_backSolenoid, Value.kForward, 1.0));
+    sm.addState(sg);
+
+    // Get back of robot onto platform
+    sm.addState(new StateDriveY(m_robotDrive, 0.4, 1.0));
+    sm.addState(new StateSoliniod(m_backSolenoid, Value.kForward, 1.0));
+
+    return sm;
+  }
+
+  private double squareInput(double x) {
+    if (x < 0) {
+      x = -x*x;
+    }
+    else {
+      x = x*x;
+    }
+    return x;
+  }
+
 
   @Override
   public void robotInit() {
@@ -78,7 +106,7 @@ public class Robot extends TimedRobot {
 
 
 
-    CameraServer.getInstance().startAutomaticCapture();
+    //CameraServer.getInstance().startAutomaticCapture();
     // Inputs
     m_stick = new Joystick(RobotMap.kJoystick);
     m_gamePad = new Joystick(RobotMap.kGamepad);
@@ -86,7 +114,6 @@ public class Robot extends TimedRobot {
     //liftMotor = new WPI_TalonSRX(liftMotorChannel);
 
     //m_gyro = new AnalogGyro(0);
-    m_timer = new Timer();
     
     // Pneumatics
     m_bumperReach = new DoubleSolenoid(RobotMap.kSolenoidModule,RobotMap.kBumperReachForward,RobotMap.kBumperReachReverse);
@@ -96,10 +123,14 @@ public class Robot extends TimedRobot {
     m_backSolenoid = new DoubleSolenoid(RobotMap.kSolenoidModule,RobotMap.kClimberBackForwards,RobotMap.kClimberBackReverse);
    
     // Drive Terrain
-    WPI_TalonSRX frontLeft = new WPI_TalonSRX(RobotMap.kFrontLeftChannel);
-    WPI_TalonSRX rearLeft = new WPI_TalonSRX(RobotMap.kRearLeftChannel);
-    WPI_TalonSRX frontRight = new WPI_TalonSRX(RobotMap.kFrontRightChannel);
-    WPI_TalonSRX rearRight = new WPI_TalonSRX(RobotMap.kRearRightChannel);
+    //WPI_TalonSRX frontLeft = new WPI_TalonSRX(RobotMap.kFrontLeftChannel);
+    //WPI_TalonSRX rearLeft = new WPI_TalonSRX(RobotMap.kRearLeftChannel);
+    //WPI_TalonSRX frontRight = new WPI_TalonSRX(RobotMap.kFrontRightChannel);
+    //WPI_TalonSRX rearRight = new WPI_TalonSRX(RobotMap.kRearRightChannel);
+    Spark frontLeft = new Spark(0);
+    Spark frontRight = new Spark(1);
+    Spark rearLeft = new Spark(2);
+    Spark rearRight = new Spark(3);
   
     frontLeft.setInverted(true);
     rearLeft.setInverted(true);
@@ -108,9 +139,13 @@ public class Robot extends TimedRobot {
 
     m_robotDrive = new MecanumDrive(frontLeft, rearLeft, frontRight, rearRight);
 
-    // Elevator
-    m_elevatorLeft = new WPI_TalonSRX(RobotMap.kElevatorLeft);
-    m_elevatorRight = new WPI_TalonSRX(RobotMap.kElevatorRight);
+    // Elevator 
+  
+    //m_elevatorLeft = new WPI_TalonSRX(RobotMap.kElevatorLeft); // swich pwm to WPI)_ 
+    //m_elevatorRight = new WPI_TalonSRX(RobotMap.kElevatorRight);
+    Spark m_elevatorLeft = new Spark(4);
+    Spark m_elevatorRight = new Spark(5);
+    
     m_elevatorRight.setInverted(true);
     m_limitSwitchBottom = new DigitalInput(RobotMap.kLimitSwitchBottom);
     m_limitSwitchTop = new DigitalInput(RobotMap.kLimitSwitchTop);
@@ -119,8 +154,7 @@ public class Robot extends TimedRobot {
     //pixy2.init();
     //Testing pixy2 LED Color
 
-    //sm.addState(new StateWait(1));
-    //sm.addState(new StateDriveY(m_robotDrive, 1, 1));
+    sm = buildStateMachine();
 
   }
 
@@ -129,16 +163,14 @@ public class Robot extends TimedRobot {
     m_bumperReach.set(DoubleSolenoid.Value.kReverse);
     m_frontSolenoid.set(DoubleSolenoid.Value.kReverse);
     //backSolenoid.set(DoubleSolenoid.Value.kReverse);
-    half = false;
-    specialHalf = false;
+   
   }
 
   @Override
   public void teleopPeriodic() {
-    // Use the joystick X axis for lateral movement, Y axis for forward
-    // movement, and Z axis for rotation.
 
-    
+    ///////////////////////////////////////////////////////////////////////////
+    // Driving Code
     double speed = 0.0;
     if (m_stick.getRawButton(1)) {
       speed = 1.0; // Overddrive (press trigger)
@@ -146,84 +178,45 @@ public class Robot extends TimedRobot {
       speed = 0.70; // Normal case (70%)
     }
 
+    m_robotDrive.driveCartesian(-speed*squareInput(m_stick.getX()),
+                                speed*squareInput(m_stick.getY()),
+                                -speed*squareInput(m_stick.getThrottle()));
 
-    double x = m_stick.getX();
-    if (x < 0) {
-      x = -x*x;
-    }
-    else {
-      x = x*x;
-    }
 
-    double z = m_stick.getThrottle();
-    if (z < 0) {
-      z = -z*z;
-    }
-    else {
-      z = z*z;
-    }
-
+    ///////////////////////////////////////////////////////////////////////////
+    // Elevator
     
-    double y = m_stick.getY();
-    if (y < 0) {
-      y = -y*y;
-    }
-    else {
-      y = y*y;
-    }
-    m_robotDrive.driveCartesian(-speed*x,
-                                speed*y,
-                                -speed*z);
+    //TODO put on to POV
 
-  
-
-
-
-
-/*
-    // two joystick
-    m_robotDrive.driveCartesian(-0.5*m_stick.getX(), 0.5*m_stick.getY(), -0.5*spinJoystick.getX());
-    
-
-
-*/
-    // TEST
-    SmartDashboard.putNumber("speed?", m_stick.getTwist()*-0.5+0.5);
-    
-      
-    // Elivator
-    
     if (m_gamePad.getRawButtonPressed(1)) {
-      elevatorPosition = 0;
-    }
-    if (m_gamePad.getRawButtonPressed(2)) {
-      elevatorPosition = 1;
+      elevatorPosition = ElevatorDirection.DOWN;
+    } else if (m_gamePad.getRawButtonPressed(2)) {
+      elevatorPosition = ElevatorDirection.UP;
+    } 
+
+    // lower end stop
+    if (m_limitSwitchBottom.get() && elevatorPosition == ElevatorDirection.DOWN) {
+      elevatorPosition = ElevatorDirection.STOPPED;
     }
 
-    if (elevatorPosition == 0) {
-     
-      m_elevatorLeft.set(-0.7);
-      m_elevatorRight.set(-0.7);
-
-      if (!m_limitSwitchBottom.get()){
-       elevatorPosition = 2;
+    // upper end stop
+    if (m_limitSwitchTop.get() && elevatorPosition == ElevatorDirection.UP) {
+      elevatorPosition = ElevatorDirection.STOPPED;
     }
-  }
-  /*
-    if (elevatorPosition == 1) {
-     
+
+    if (elevatorPosition == ElevatorDirection.UP) {
       m_elevatorLeft.set(0.7);
       m_elevatorRight.set(0.7);
-
-      if (!m_limitSwitchTop.get()){
-        elevatorPosition = 2;
+    } else if (elevatorPosition == ElevatorDirection.DOWN) {
+      m_elevatorLeft.set(-0.7);
+      m_elevatorRight.set(-0.7);
     }
-  }
-*/
+
+
      //limit switchs
     /*
     }*/
-
+/*
     if (m_gamePad.getRawButton(1)) {
       m_elevatorLeft.set(0.7);
       m_elevatorRight.set(0.7);
@@ -236,8 +229,10 @@ public class Robot extends TimedRobot {
       m_elevatorLeft.set(0.0);
       m_elevatorRight.set(0.0);
     }
-    
+    */
     // Extender
+
+
     if (m_gamePad.getRawButtonPressed(4)) {
       
       // Unusual case - put here just to cover the corner case
@@ -261,25 +256,38 @@ public class Robot extends TimedRobot {
      }else{
        m_kicker.set(DoubleSolenoid.Value.kReverse);
      }
-/*
 
+     SmartDashboard.putNumber("POV", m_gamePad.getPOV());
 
-    if (m_gamePad.getRawButton(4)) {
-      sm.execute();  
+    if (m_gamePad.getRawButton(8) && m_gamePad.getRawButtonPressed(2)) {
+      m_startClimb = true;      
     }
-    if (m_gamePad.getRawButtonReleased(4)) {
+
+    if (m_gamePad.getRawButton(1)) { 
+      m_startClimb = false;
+      m_backSolenoid.set(Value.kReverse);
+      m_frontSolenoid.set(Value.kReverse);
+    }
+    
+    SmartDashboard.putBoolean("m_startClimb", m_startClimb);
+
+    if (sm.isDone()){
+      m_startClimb = false;
+    }
+
+    if (m_startClimb){
+      //sm.execute();
+    }
+    else{
       sm.reset();
     }
-      boolean climb = false;
+     
+    
+    
 
-    if (m_gamePad.getRawButton(7) & m_gamePad.getRawButton(8)){
-      climb = true;
-    }
-    if (climb){
-      
-    }
+    
 
-*/
+
 
     /*
     
