@@ -6,5 +6,6 @@ public interface State {
     public void exit();
     public void execute();
     public Boolean isDone();
+    public String getName();
 
 }

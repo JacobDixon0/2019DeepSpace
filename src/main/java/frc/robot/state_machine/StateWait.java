@@ -9,6 +9,7 @@ public class StateWait implements State {
 
     public StateWait(double nSeconds) {
         _nSeconds = nSeconds;
+        timer = new Timer();
     }
 
     @Override
@@ -29,7 +30,12 @@ public class StateWait implements State {
 
     @Override
     public Boolean isDone() {
-        return timer.get() > _nSeconds;
+        return timer.get() >= _nSeconds;
+    }
+
+    @Override
+    public String getName() {
+        return "StateWait";
     }
 
 }

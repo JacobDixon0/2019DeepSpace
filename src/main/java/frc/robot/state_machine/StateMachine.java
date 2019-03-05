@@ -7,8 +7,10 @@ public class StateMachine implements State {
     private Vector<State> states;
     private int index;
     private boolean firstRun;
+    private String name;
 
-    public StateMachine() {
+    public StateMachine(String name) {
+        this.name = name;
         states = new Vector<State>();
         reset();
     }
@@ -55,5 +57,16 @@ public class StateMachine implements State {
     public void reset() {
         index = 0;
         firstRun = true;
+    }
+
+    @Override
+    public String getName()   {
+        String ret;
+        if (index < states.size()){
+            ret = name + "(" + states.get(index).getName() + ")";
+        } else {
+            ret = "DONE!";
+        }
+        return ret;
     }
 }

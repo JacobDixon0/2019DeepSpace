@@ -1,12 +1,18 @@
 package frc.robot.state_machine;
 
 import java.util.Vector;
+import java.util.stream.Collectors;
 
 public class StateGroup implements State {
 
     private Vector<State> group;
+    private String stateName;
+    private String name;
+    private int stateNumber;
+    
 
-    public StateGroup() {
+    public StateGroup(String name ) {
+        this.name = name;
         group = new Vector<State>();
     }
 
@@ -46,5 +52,12 @@ public class StateGroup implements State {
             }
         }
         return allDone;
-	}
+    }
+    
+    @Override
+    public String getName() {    
+        String groupNames = group.stream().map(s -> s.getName()).collect(Collectors.joining(", "));
+        return name + "(" + groupNames + ")";
+    }
+   
 }

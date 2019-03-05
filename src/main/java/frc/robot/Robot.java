@@ -69,7 +69,7 @@ public class Robot extends TimedRobot {
 
 
   private StateMachine buildStateMachine() {
-    StateMachine sm = new StateMachine();
+    StateMachine sm = new StateMachine("ClimbMachine");
 
     // Lift the front of the robot onto the platform
     sm.addState(new StateDriveY(m_robotDrive, -0.4, 1.0));
@@ -77,7 +77,7 @@ public class Robot extends TimedRobot {
     sm.addState(new StateDriveY(m_robotDrive, 0.4, 1.0));
 
     // Retract front and extend back (lifting back of robot onto platform)
-    StateGroup sg = new StateGroup();
+    StateGroup sg = new StateGroup("LiftGroup");
     sg.addState(new StateSoliniod(m_frontSolenoid, Value.kReverse, 1.0));
     sg.addState(new StateSoliniod(m_backSolenoid, Value.kForward, 1.0));
     sm.addState(sg);
@@ -102,9 +102,6 @@ public class Robot extends TimedRobot {
 
   @Override
   public void robotInit() {
-
-
-
 
     //CameraServer.getInstance().startAutomaticCapture();
     // Inputs
@@ -188,12 +185,12 @@ public class Robot extends TimedRobot {
     
     //TODO put on to POV
 
-    if (m_gamePad.getRawButtonPressed(1)) {
+   /* if (m_gamePad.getRawButtonPressed(1)) {
       elevatorPosition = ElevatorDirection.DOWN;
     } else if (m_gamePad.getRawButtonPressed(2)) {
       elevatorPosition = ElevatorDirection.UP;
     } 
-
+*/
     // lower end stop
     if (m_limitSwitchBottom.get() && elevatorPosition == ElevatorDirection.DOWN) {
       elevatorPosition = ElevatorDirection.STOPPED;
@@ -213,10 +210,10 @@ public class Robot extends TimedRobot {
     }
 
 
-     //limit switchs
+    //limit switchs
     /*
-    }*/
-/*
+    }
+
     if (m_gamePad.getRawButton(1)) {
       m_elevatorLeft.set(0.7);
       m_elevatorRight.set(0.7);
@@ -249,17 +246,20 @@ public class Robot extends TimedRobot {
       }
     }
    
-     //The kicker
-    
-     if (m_gamePad.getRawButton(3))   {
-       m_kicker.set(DoubleSolenoid.Value.kForward);
-     }else{
-       m_kicker.set(DoubleSolenoid.Value.kReverse);
-     }
+    //The kicker
+  
+    if (m_gamePad.getRawButton(3))   {
+      m_kicker.set(DoubleSolenoid.Value.kForward);
+    }else{
+      m_kicker.set(DoubleSolenoid.Value.kReverse);
+    }
 
-     SmartDashboard.putNumber("POV", m_gamePad.getPOV());
+    SmartDashboard.putNumber("POV", m_gamePad.getPOV());
 
-    if (m_gamePad.getRawButton(8) && m_gamePad.getRawButtonPressed(2)) {
+    SmartDashboard.putBoolean("getRawButton(8)", m_gamePad.getRawButton(8));
+    SmartDashboard.putBoolean("getRawButton(2)", m_gamePad.getRawButton(2));
+
+    if (m_gamePad.getRawButton(8) && m_gamePad.getRawButton(2)) {
       m_startClimb = true;      
     }
 
@@ -270,17 +270,20 @@ public class Robot extends TimedRobot {
     }
     
     SmartDashboard.putBoolean("m_startClimb", m_startClimb);
+    SmartDashboard.putBoolean("sm.isDone", sm.isDone());
 
     if (sm.isDone()){
       m_startClimb = false;
     }
 
     if (m_startClimb){
-      //sm.execute();
+      sm.execute();
     }
     else{
       sm.reset();
     }
+
+    SmartDashboard.putString("Current State", sm.getName());
      
     
     

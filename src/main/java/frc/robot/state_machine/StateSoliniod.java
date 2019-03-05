@@ -16,13 +16,13 @@ public class StateSoliniod extends StateWait {
     }
 
     @Override
-    public void exit() {
-
+    public void execute() {
+        m_solenoid.set(m_position);
     }
 
     @Override
-    public void execute() {
-        m_solenoid.set(m_position);
+    public String getName()  {
+        return "StateSolinoid";
     }
 
 }
