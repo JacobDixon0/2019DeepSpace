@@ -7,7 +7,9 @@
 
 package frc.robot;
 
-  import edu.wpi.first.cameraserver.CameraServer;
+  import java.util.Queue;
+
+import edu.wpi.first.cameraserver.CameraServer;
   import edu.wpi.first.wpilibj.DigitalInput;
   import edu.wpi.first.wpilibj.DoubleSolenoid;
   import edu.wpi.first.wpilibj.Joystick;
@@ -16,6 +18,7 @@ package frc.robot;
   import edu.wpi.first.wpilibj.Spark;
   import edu.wpi.first.wpilibj.TimedRobot;
   import edu.wpi.first.wpilibj.DoubleSolenoid.Value;
+  import edu.wpi.first.wpilibj.buttons.POVButton;
   import edu.wpi.first.wpilibj.drive.MecanumDrive;
   import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
   import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
@@ -23,7 +26,7 @@ package frc.robot;
   import io.github.pseudoresonance.pixy2api.links.I2CLink;
   import frc.robot.state_machine.*;
   
-
+  import frc.robot.Pixy2Handler;
   import frc.robot.RobotMap;
 
   //import com.ctre.phoenix.motorcontrol.can.WPI_TalonSRX;
@@ -58,7 +61,8 @@ public class Robot extends TimedRobot {
   private ElevatorDirection elevatorPosition = ElevatorDirection.STOPPED;
   
   // Camera
-  private Pixy2 m_pixy2;
+  private Pixy2Handler m_pixy2;
+  
   
   // State
   private boolean m_startClimb = false; 
@@ -107,6 +111,9 @@ public class Robot extends TimedRobot {
     // Inputs
     m_stick = new Joystick(RobotMap.kJoystick);
     m_gamePad = new Joystick(RobotMap.kGamepad);
+
+    
+
     //spinJoystick = new Joystick(2);
     //liftMotor = new WPI_TalonSRX(liftMotorChannel);
 
@@ -147,8 +154,8 @@ public class Robot extends TimedRobot {
     m_limitSwitchBottom = new DigitalInput(RobotMap.kLimitSwitchBottom);
     m_limitSwitchTop = new DigitalInput(RobotMap.kLimitSwitchTop);
 
-    //Pixy2 pixy2 = Pixy2.createInstance(Pixy2.LinkType.I2C);
-    //pixy2.init();
+    Pixy2 pixy2 = Pixy2.createInstance(Pixy2.LinkType.I2C);
+    m_pixy2.init();
     //Testing pixy2 LED Color
 
     sm = buildStateMachine();
@@ -178,19 +185,33 @@ public class Robot extends TimedRobot {
     m_robotDrive.driveCartesian(-speed*squareInput(m_stick.getX()),
                                 speed*squareInput(m_stick.getY()),
                                 -speed*squareInput(m_stick.getThrottle()));
+    
+    //manual climb
 
+    // front Solenoid
+    if (m_stick.getRawButtonPressed(3)){
+      if (m_frontSolenoid.get() == Value.kReverse){m_frontSolenoid.set(DoubleSolenoid.Value.kForward);}
+      if (m_frontSolenoid.get() == Value.kForward){m_frontSolenoid.set(DoubleSolenoid.Value.kReverse);}
+      if (m_frontSolenoid.get() == Value.kOff){{m_frontSolenoid.set(DoubleSolenoid.Value.kForward);}
+    }
+    // Back Solenoid
+    if (m_stick.getRawButtonPressed(5)){
+      if (m_backSolenoid.get() == Value.kReverse){m_backSolenoid.set(DoubleSolenoid.Value.kForward);}
+      if (m_backSolenoid.get() == Value.kForward){m_backSolenoid.set(DoubleSolenoid.Value.kReverse);}
+      if (m_backSolenoid.get() == Value.kOff){m_backSolenoid.set(DoubleSolenoid.Value.kForward);}
+    }
 
     ///////////////////////////////////////////////////////////////////////////
     // Elevator
     
     //TODO put on to POV
-
-   /* if (m_gamePad.getRawButtonPressed(1)) {
+    
+    if (m_gamePad.getPOV()  == 0) {
       elevatorPosition = ElevatorDirection.DOWN;
-    } else if (m_gamePad.getRawButtonPressed(2)) {
+    } else if (m_gamePad.getPOV() == 180) {
       elevatorPosition = ElevatorDirection.UP;
     } 
-*/
+
     // lower end stop
     if (m_limitSwitchBottom.get() && elevatorPosition == ElevatorDirection.DOWN) {
       elevatorPosition = ElevatorDirection.STOPPED;
@@ -209,27 +230,42 @@ public class Robot extends TimedRobot {
       m_elevatorRight.set(-0.7);
     }
 
+    ///////////////////////////////////////////////////////////////////////////
 
-    //limit switchs
-    /*
+    //Manual Climer
+   
+
+    if (m_stick.getRawButtonPressed(4)){
+      if (m_frontSolenoid.get() == Value.kForward){
+        m_frontSolenoid.set(Value.kReverse);
+      }
+      if (m_frontSolenoid.get() == Value.kReverse){
+        m_frontSolenoid.set(Value.kForward);
+      }
+    }
+    if (m_stick.getRawButtonPressed(6)){
+      if (m_backSolenoid.get() == Value.kForward){
+        m_backSolenoid.set(Value.kReverse);
+      }
+      if (m_backSolenoid.get() == Value.kReverse){
+        m_backSolenoid.set(Value.kForward);
+      }
     }
 
-    if (m_gamePad.getRawButton(1)) {
-      m_elevatorLeft.set(0.7);
-      m_elevatorRight.set(0.7);
-    }
-    else if (m_gamePad.getRawButton(2)) {
-      m_elevatorLeft.set(-0.7);
-      m_elevatorRight.set(-0.7);
-    }
-    else {
-      m_elevatorLeft.set(0.0);
-      m_elevatorRight.set(0.0);
-    }
-    */
+
+
+    ///////////////////////////////////////////////////////////////////////////
+    // Pixy2
+   
+    
+
+    SmartDashboard.putNumber("x0", m_pixy2.x0());
+    SmartDashboard.putNumber("x1", m_pixy2.x1()); 
+    SmartDashboard.putNumber("y0", m_pixy2.y0());
+    SmartDashboard.putNumber("y1", m_pixy2.y1());
+    ///////////////////////////////////////////////////////////////////////////
+
     // Extender
-
-
     if (m_gamePad.getRawButtonPressed(4)) {
       
       // Unusual case - put here just to cover the corner case
@@ -269,6 +305,8 @@ public class Robot extends TimedRobot {
       m_frontSolenoid.set(Value.kReverse);
     }
     
+    ///////////////////////////////////////////////////////////////////////////
+
     SmartDashboard.putBoolean("m_startClimb", m_startClimb);
     SmartDashboard.putBoolean("sm.isDone", sm.isDone());
 
@@ -285,71 +323,7 @@ public class Robot extends TimedRobot {
 
     SmartDashboard.putString("Current State", sm.getName());
      
-    
-    
-
-    
-
-
-
-    /*
-    
-
-
-
-    // PIXY2 DEBUG SECTION
-    
-  // SmartDashboard.putNumber("resoultion", pixy2.getResolution());
-
-
-    // END PIXY2 DEBUG SECTION
-
-
-    boolean gyroReset = m_gamePad.getRawButton(7);
-    if(gyroReset){
-      m_gyro.reset();
-      System.out.println("Reset!");
-    }
-    
-    
-   
-   
-
-    //Time Variables (1.0 IS PLACEHOLDER TIME FOR NOW) 
-    /*
-    double extendFront = 1.0;
-    double extendBack = extendFront + 1.0;
-    double retractBack = extendBack + 1.0;
-    double finish = retractBack + 1.0;
-   
-    //Climbing Mechanism
-  
-      timer.reset();
-      timer.start();
-      m_robotDrive.driveCartesian(-1, 0, 0);
-    
-      if (timer.get() == extendFront){
-        m_robotDrive.driveCartesian(0, 0, 0);
-        frontSolenoid.set(DoubleSolenoid.Value.kForward);
-        m_robotDrive.driveCartesian(1, 0, 0);
-      
-      }
-     if (timer.get() == extendBack){
-        m_robotDrive.driveCartesian(0, 0, 0);
-        //backSolenoid.set(DoubleSolenoid.Value.kForward);
-        frontSolenoid.set(DoubleSolenoid.Value.kReverse);
-        m_robotDrive.drive\Cartesian(1, 0, 0);
-      
-      }   
-      if (timer.get() == retractBack){
-        //backSolenoid.set(DoubleSolenoid.Value.kReverse);
-        m_robotDrive.driveCartesian(1, 0, 0);
-      
-      }
-      if (timer.get() == finish){
-        m_robotDrive.driveCartesian(0, 0, 0);
-      }
-    }*/
+       
   }     
 }
 
