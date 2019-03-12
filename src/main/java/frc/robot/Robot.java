@@ -7,9 +7,11 @@
 
 package frc.robot;
 
-  import java.util.Queue;
+import java.util.Queue;
 
-import edu.wpi.first.cameraserver.CameraServer;
+import com.ctre.phoenix.motorcontrol.can.WPI_TalonSRX;
+
+  import edu.wpi.first.cameraserver.CameraServer;
   import edu.wpi.first.wpilibj.DigitalInput;
   import edu.wpi.first.wpilibj.DoubleSolenoid;
   import edu.wpi.first.wpilibj.Joystick;
@@ -50,10 +52,10 @@ public class Robot extends TimedRobot {
   private DoubleSolenoid m_backSolenoid;
   
   // Elevator
-  //private WPI_TalonSRX m_elevatorLeft;
-  //private WPI_TalonSRX m_elevatorRight;
-  private Spark m_elevatorLeft;
-  private Spark m_elevatorRight;
+  private WPI_TalonSRX m_elevatorLeft;
+  private WPI_TalonSRX m_elevatorRight;
+  //private Spark m_elevatorLeft;
+  //private Spark m_elevatorRight;
 
   private DigitalInput m_limitSwitchBottom;
   private DigitalInput m_limitSwitchTop;
@@ -131,14 +133,14 @@ public class Robot extends TimedRobot {
     m_backSolenoid = new DoubleSolenoid(RobotMap.kSolenoidModule,RobotMap.kClimberBackForwards,RobotMap.kClimberBackReverse);
    
     // Drive Terrain
-    //WPI_TalonSRX frontLeft = new WPI_TalonSRX(RobotMap.kFrontLeftChannel);
-    //WPI_TalonSRX rearLeft = new WPI_TalonSRX(RobotMap.kRearLeftChannel);
-    //WPI_TalonSRX frontRight = new WPI_TalonSRX(RobotMap.kFrontRightChannel);
-    //WPI_TalonSRX rearRight = new WPI_TalonSRX(RobotMap.kRearRightChannel);
-    Spark frontLeft = new Spark(0);
-    Spark frontRight = new Spark(1);
-    Spark rearLeft = new Spark(2);
-    Spark rearRight = new Spark(3);
+    WPI_TalonSRX frontLeft = new WPI_TalonSRX(RobotMap.kFrontLeftChannel);
+    WPI_TalonSRX rearLeft = new WPI_TalonSRX(RobotMap.kRearLeftChannel);
+    WPI_TalonSRX frontRight = new WPI_TalonSRX(RobotMap.kFrontRightChannel);
+    WPI_TalonSRX rearRight = new WPI_TalonSRX(RobotMap.kRearRightChannel);
+    //Spark frontLeft = new Spark(0);
+    //Spark frontRight = new Spark(1);
+    //Spark rearLeft = new Spark(2);
+    //Spark rearRight = new Spark(3);
   
     frontLeft.setInverted(true);
     rearLeft.setInverted(true);
@@ -149,10 +151,10 @@ public class Robot extends TimedRobot {
 
     // Elevator 
   
-    //m_elevatorLeft = new WPI_TalonSRX(RobotMap.kElevatorLeft); // swich pwm to WPI)_ 
-    //m_elevatorRight = new WPI_TalonSRX(RobotMap.kElevatorRight);
-    Spark m_elevatorLeft = new Spark(4);
-    Spark m_elevatorRight = new Spark(5);
+    m_elevatorLeft = new WPI_TalonSRX(RobotMap.kElevatorLeft); // swich pwm to WPI)_ 
+    m_elevatorRight = new WPI_TalonSRX(RobotMap.kElevatorRight);
+    //Spark m_elevatorLeft = new Spark(4);
+    //Spark m_elevatorRight = new Spark(5);
     
     m_elevatorRight.setInverted(true);
     m_limitSwitchBottom = new DigitalInput(RobotMap.kLimitSwitchBottom);
@@ -201,7 +203,7 @@ public class Robot extends TimedRobot {
     double z = squareInput(m_stick.getThrottle());
 
     double angleError = m_pixy2.getVector().neg().angle() - Math.PI/2.0;
-    SmartDashboard.putNumber("error", angleError);
+    //SmartDashboard.putNumber("error", angleError);
 
     if (m_stick.getRawButton(4)) {
 
