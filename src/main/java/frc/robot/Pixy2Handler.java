@@ -150,10 +150,10 @@ public class Pixy2Handler{
     public byte x0(){
         return localCache[8];
     }
-    public byte x1(){
+    public byte y0(){
         return localCache[9];
     }
-    public byte y0(){
+    public byte x1(){
         return localCache[10];
     }
     public byte y1(){
@@ -174,7 +174,23 @@ public class Pixy2Handler{
         //System.out.println("index: " + localCache[12]);
         //System.out.println("flags: " + localCache[13]);
         if((localCache[10]-localCache[8])!=0)
-            System.out.println("angle: " + Math.atan((localCache[11]-localCache[9])/(localCache[10]-localCache[8]))*180/Math.PI);
+            System.out.println("angle: " + Math.atan2((localCache[11]-localCache[9]),(localCache[10]-localCache[8]))*180/Math.PI);
+    }
+
+    public Vector2D getVector() { 
+        
+        double x0 = localCache[8];
+        double x1 = localCache[10];
+        double y0 = localCache[9];
+        double y1 = localCache[11];
+
+        Vector2D corrected = new Vector2D(x1-x0, y1-y0);
+        
+        if (y1 > y0) {
+            corrected = corrected.neg();
+        }
+
+        return corrected;
     }
 
     public byte[] HandleInput()

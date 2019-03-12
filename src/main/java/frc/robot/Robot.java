@@ -62,7 +62,10 @@ public class Robot extends TimedRobot {
   
   // Camera
   private Pixy2Handler m_pixy2;
-  
+  private int thetaError;
+  private double thetaConstant = 0.5;
+  private int xError;
+  private double xConstant = 0.5;
   
   // State
   private boolean m_startClimb = false; 
@@ -70,6 +73,7 @@ public class Robot extends TimedRobot {
   
   // Autonomous
   private StateMachine sm;
+
 
 
   private StateMachine buildStateMachine() {
@@ -154,7 +158,9 @@ public class Robot extends TimedRobot {
     m_limitSwitchBottom = new DigitalInput(RobotMap.kLimitSwitchBottom);
     m_limitSwitchTop = new DigitalInput(RobotMap.kLimitSwitchTop);
 
-    Pixy2 pixy2 = Pixy2.createInstance(Pixy2.LinkType.I2C);
+    m_pixy2 = new Pixy2Handler();
+
+   // Pixy2 m_pixy2 = Pixy2.createInstance(Pixy2.LinkType.I2C);
     m_pixy2.init();
     //Testing pixy2 LED Color
 
@@ -173,26 +179,52 @@ public class Robot extends TimedRobot {
   @Override
   public void teleopPeriodic() {
 
+    m_pixy2.sendRequest(m_pixy2.CHECKSUM_GETMAINFEATURES);
+    m_pixy2.printLocalCache();
+
     ///////////////////////////////////////////////////////////////////////////
     // Driving Code
+    
+    
+    
+    
     double speed = 0.0;
+
     if (m_stick.getRawButton(1)) {
       speed = 1.0; // Overddrive (press trigger)
-    } else {
+    } else { 
       speed = 0.70; // Normal case (70%)
     }
 
-    m_robotDrive.driveCartesian(-speed*squareInput(m_stick.getX()),
-                                speed*squareInput(m_stick.getY()),
-                                -speed*squareInput(m_stick.getThrottle()));
+    double x = squareInput(m_stick.getX());
+    double y = squareInput(m_stick.getY());
+    double z = squareInput(m_stick.getThrottle());
+
+    double angleError = m_pixy2.getVector().neg().angle() - Math.PI/2.0;
+    SmartDashboard.putNumber("error", angleError);
+
+    if (m_stick.getRawButton(4)) {
+
+      //TODO check if the angle works in both directions
+      //double angleError = m_pixy2.getVector().neg().angle() - Math.PI/2.0;
+
+      
+      
+      double thetaProp;
+      double xProp;
+     // m_robotDrive.driveCartesian(xProp, speed*y, thetaProp);
+    } else {
+      m_robotDrive.driveCartesian(-speed*x, speed*y, -speed*z);
+    }
+    
+    
     
     //manual climb
-
     // front Solenoid
     if (m_stick.getRawButtonPressed(3)){
       if (m_frontSolenoid.get() == Value.kReverse){m_frontSolenoid.set(DoubleSolenoid.Value.kForward);}
       if (m_frontSolenoid.get() == Value.kForward){m_frontSolenoid.set(DoubleSolenoid.Value.kReverse);}
-      if (m_frontSolenoid.get() == Value.kOff){{m_frontSolenoid.set(DoubleSolenoid.Value.kForward);}
+      if (m_frontSolenoid.get() == Value.kOff){m_frontSolenoid.set(DoubleSolenoid.Value.kForward);}
     }
     // Back Solenoid
     if (m_stick.getRawButtonPressed(5)){
