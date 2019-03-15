@@ -80,21 +80,22 @@ public class Robot extends TimedRobot {
 
   private StateMachine buildStateMachine() {
     StateMachine sm = new StateMachine("ClimbMachine");
-
+    
     // Lift the front of the robot onto the platform
-    sm.addState(new StateDriveY(m_robotDrive, -0.4, 1.0));
-    sm.addState(new StateSoliniod(m_frontSolenoid, Value.kForward, 1.0));
-    sm.addState(new StateDriveY(m_robotDrive, 0.4, 1.0));
+    sm.addState(new StateSolenoid(m_frontSolenoid, Value.kForward, 1.0));
+    sm.addState(new StateDriveY(m_robotDrive, 0.4, 2.0));
 
     // Retract front and extend back (lifting back of robot onto platform)
     StateGroup sg = new StateGroup("LiftGroup");
-    sg.addState(new StateSoliniod(m_frontSolenoid, Value.kReverse, 1.0));
-    sg.addState(new StateSoliniod(m_backSolenoid, Value.kForward, 1.0));
+    sg.addState(new StateSolenoid(m_frontSolenoid, Value.kReverse, 2.0));
+    sg.addState(new StateSolenoid(m_backSolenoid, Value.kForward, 2.0));
     sm.addState(sg);
 
     // Get back of robot onto platform
-    sm.addState(new StateDriveY(m_robotDrive, 0.4, 1.0));
-    sm.addState(new StateSoliniod(m_backSolenoid, Value.kForward, 1.0));
+    sm.addState(new StateDriveY(m_robotDrive, 0.4, 2.0));
+    sm.addState(new StateSolenoid(m_backSolenoid, Value.kForward, 1.0));
+    sm.addState(new StateDriveY(m_robotDrive, 0.4, 2.0));
+
 
     return sm;
   }
@@ -112,8 +113,8 @@ public class Robot extends TimedRobot {
 
   @Override
   public void robotInit() {
-
-    //CameraServer.getInstance().startAutomaticCapture();
+    
+    CameraServer.getInstance().startAutomaticCapture();
     // Inputs
     m_stick = new Joystick(RobotMap.kJoystick);
     m_gamePad = new Joystick(RobotMap.kGamepad);
@@ -171,11 +172,21 @@ public class Robot extends TimedRobot {
   }
 
   @Override
+  public void autonomousInit() {
+    teleopInit();
+  }
+
+  @Override
   public void teleopInit(){
     m_bumperReach.set(DoubleSolenoid.Value.kReverse);
     m_frontSolenoid.set(DoubleSolenoid.Value.kReverse);
-    //backSolenoid.set(DoubleSolenoid.Value.kReverse);
+    m_backSolenoid.set(DoubleSolenoid.Value.kReverse);
    
+  }
+
+  @Override
+  public void autonomousPeriodic() {
+    teleopPeriodic();
   }
 
   @Override
@@ -202,15 +213,29 @@ public class Robot extends TimedRobot {
     double y = squareInput(m_stick.getY());
     double z = squareInput(m_stick.getThrottle());
 
-    double angleError = m_pixy2.getVector().neg().angle() - Math.PI/2.0;
+    //double angleError = m_pixy2.getVector().neg().angle() - Math.PI/2.0;
     //SmartDashboard.putNumber("error", angleError);
 
-    if (m_stick.getRawButton(4)) {
+    if (m_stick.getRawButton(4)){
 
       //TODO check if the angle works in both directions
-      //double angleError = m_pixy2.getVector().neg().angle() - Math.PI/2.0;
-
+      double angleError = m_pixy2.getVector().neg().angle() - Math.PI/2.0;
       
+      Vector2D c = m_pixy2.centerPixy();
+      Vector2D l1 = m_pixy2.p0();
+      Vector2D l2 = m_pixy2.getVector();
+      
+      double t1 = c.y()*l2.x() - c.y()*l1.x() - c.x()*l2.y() + l1.x()*l2.y() + c.x()*l1.y() - l2.x()*l1.y();
+      double t2 = l2.y()-l1.y();
+      double xError = Math.sqrt((t1*t1) / (t2*t2));
+     
+      SmartDashboard.putNumber("angleError", angleError);
+      SmartDashboard.putNumber("xError", xError);
+      
+      //Corection
+      double C = 0.5;
+      double S = 0.5;
+      m_robotDrive.driveCartesian(-speed*x, xError*C, angleError*C);
       
       double thetaProp;
       double xProp;
@@ -223,53 +248,74 @@ public class Robot extends TimedRobot {
     
     //manual climb
     // front Solenoid
-    if (m_stick.getRawButtonPressed(3)){
+    if (m_stick.getRawButtonPressed(5)){
       if (m_frontSolenoid.get() == Value.kReverse){m_frontSolenoid.set(DoubleSolenoid.Value.kForward);}
-      if (m_frontSolenoid.get() == Value.kForward){m_frontSolenoid.set(DoubleSolenoid.Value.kReverse);}
-      if (m_frontSolenoid.get() == Value.kOff){m_frontSolenoid.set(DoubleSolenoid.Value.kForward);}
+      else if (m_frontSolenoid.get() == Value.kForward){m_frontSolenoid.set(DoubleSolenoid.Value.kReverse);}
+      else if (m_frontSolenoid.get() == Value.kOff){m_frontSolenoid.set(DoubleSolenoid.Value.kForward);}
     }
     // Back Solenoid
-    if (m_stick.getRawButtonPressed(5)){
+    if (m_stick.getRawButtonPressed(6)){
       if (m_backSolenoid.get() == Value.kReverse){m_backSolenoid.set(DoubleSolenoid.Value.kForward);}
-      if (m_backSolenoid.get() == Value.kForward){m_backSolenoid.set(DoubleSolenoid.Value.kReverse);}
-      if (m_backSolenoid.get() == Value.kOff){m_backSolenoid.set(DoubleSolenoid.Value.kForward);}
+      else if (m_backSolenoid.get() == Value.kForward){m_backSolenoid.set(DoubleSolenoid.Value.kReverse);}
+      else if (m_backSolenoid.get() == Value.kOff){m_backSolenoid.set(DoubleSolenoid.Value.kForward);}
     }
 
     ///////////////////////////////////////////////////////////////////////////
     // Elevator
     
-    //TODO put on to POV
+
     
-    if (m_gamePad.getPOV()  == 0) {
-      elevatorPosition = ElevatorDirection.DOWN;
-    } else if (m_gamePad.getPOV() == 180) {
-      elevatorPosition = ElevatorDirection.UP;
-    } 
 
-    // lower end stop
-    if (m_limitSwitchBottom.get() && elevatorPosition == ElevatorDirection.DOWN) {
-      elevatorPosition = ElevatorDirection.STOPPED;
-    }
 
-    // upper end stop
-    if (m_limitSwitchTop.get() && elevatorPosition == ElevatorDirection.UP) {
-      elevatorPosition = ElevatorDirection.STOPPED;
-    }
+    //m_elevatorRight.set(m_gamePad.getRawAxis(1));
+    //m_elevatorLeft.set(m_gamePad.getRawAxis(1));
+    double eSpeed = 0.5;
 
-    if (elevatorPosition == ElevatorDirection.UP) {
-      m_elevatorLeft.set(0.7);
-      m_elevatorRight.set(0.7);
-    } else if (elevatorPosition == ElevatorDirection.DOWN) {
-      m_elevatorLeft.set(-0.7);
-      m_elevatorRight.set(-0.7);
+    if (m_gamePad.getRawAxis(1) > 0) {
+      if (!m_limitSwitchBottom.get()) {
+        m_elevatorRight.set(0.1);
+        m_elevatorLeft.set(0.1);
+      } else {
+        m_elevatorRight.set(-m_gamePad.getRawAxis(1)*eSpeed);
+        m_elevatorLeft.set(-m_gamePad.getRawAxis(1)*eSpeed);
+      }
+
     }
+    else if (m_gamePad.getRawAxis(1) < 0) {
+      if (!m_limitSwitchTop.get()) {
+        m_elevatorRight.set(0.1);
+        m_elevatorLeft.set(0.1);
+      } else {
+        m_elevatorRight.set(-m_gamePad.getRawAxis(1)*eSpeed);
+        m_elevatorLeft.set(-m_gamePad.getRawAxis(1)*eSpeed);
+      }
+
+    }
+    else if (m_gamePad.getRawAxis(1) == 0){
+      //if (!m_limitSwitchTop.get()) {
+        m_elevatorRight.set(0);
+        m_elevatorLeft.set(0);
+      /*}
+      else {
+        m_elevatorRight.set(0.05);
+        m_elevatorLeft.set(0.05);
+      }*/
+    }
+    
+
+
+    
+    SmartDashboard.putBoolean("top", !m_limitSwitchTop.get());
+    SmartDashboard.putBoolean("Bottem", m_limitSwitchBottom.get());
+
+    
 
     ///////////////////////////////////////////////////////////////////////////
 
     //Manual Climer
    
-
-    if (m_stick.getRawButtonPressed(4)){
+/*
+    if (m_stick.getRawButtonPressed(3)){
       if (m_frontSolenoid.get() == Value.kForward){
         m_frontSolenoid.set(Value.kReverse);
       }
@@ -277,14 +323,14 @@ public class Robot extends TimedRobot {
         m_frontSolenoid.set(Value.kForward);
       }
     }
-    if (m_stick.getRawButtonPressed(6)){
+    if (m_stick.getRawButtonPressed(5)){
       if (m_backSolenoid.get() == Value.kForward){
         m_backSolenoid.set(Value.kReverse);
       }
       if (m_backSolenoid.get() == Value.kReverse){
         m_backSolenoid.set(Value.kForward);
       }
-    }
+    }*/
 
 
 
@@ -300,7 +346,7 @@ public class Robot extends TimedRobot {
     ///////////////////////////////////////////////////////////////////////////
 
     // Extender
-    if (m_gamePad.getRawButtonPressed(4)) {
+    if (m_gamePad.getRawButtonPressed(6)) {
       
       // Unusual case - put here just to cover the corner case
       if (m_bumperReach.get() == DoubleSolenoid.Value.kOff) {
@@ -318,7 +364,7 @@ public class Robot extends TimedRobot {
    
     //The kicker
   
-    if (m_gamePad.getRawButton(3))   {
+    if (m_gamePad.getRawButton(5))   {
       m_kicker.set(DoubleSolenoid.Value.kForward);
     }else{
       m_kicker.set(DoubleSolenoid.Value.kReverse);

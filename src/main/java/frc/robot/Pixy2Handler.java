@@ -160,8 +160,20 @@ public class Pixy2Handler{
         return localCache[11];
     }
 
-    public double center(){
+    public Vector2D centerPixy() {
+        return new Vector2D(79.0/4.0, 52.0/4.0);
+    }
+
+    public double centerLine(){
         return ((x0()+x1())/2);
+    }
+
+    public Vector2D p0() {
+        return new Vector2D(x0(), y0());
+    }
+
+    public Vector2D p1() {
+        return new Vector2D(x1(), y1());
     }
 
     public void printLocalCache(){

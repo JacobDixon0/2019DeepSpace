@@ -1,5 +1,7 @@
 package frc.robot;
 
+import io.github.pseudoresonance.pixy2api.Pixy2Line.Vector;
+
 public class Vector2D {
 
     private double x;
@@ -22,6 +24,10 @@ public class Vector2D {
         return new Vector2D(-x, -y);
     }
 
+    public Vector2D mul(double b) {
+        return new Vector2D(b*x, b*y);
+    }
+
     public double dot(Vector2D b) {
         return x*b.x + y*b.y;
     }
@@ -30,7 +36,24 @@ public class Vector2D {
         return Math.atan2(y, x);
     }
 
+    public double lenth() {
+        return Math.sqrt(this.dot(this));
+    }
 
+    public double x() {
+        return x;
+    }
 
+    public double y() {
+        return y;
+    }
+
+    public static Vector2D iHat() {
+        return new Vector2D(1.0, 0.0);
+    }
+
+    public static Vector2D jHat() {
+        return new Vector2D(0.0, 1.0);
+    }
 
 }
