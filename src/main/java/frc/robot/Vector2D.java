@@ -1,6 +1,6 @@
 package frc.robot;
 
-import io.github.pseudoresonance.pixy2api.Pixy2Line.Vector;
+
 
 public class Vector2D {
 

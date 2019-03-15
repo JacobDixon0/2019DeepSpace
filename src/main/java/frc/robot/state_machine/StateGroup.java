@@ -6,9 +6,8 @@ import java.util.stream.Collectors;
 public class StateGroup implements State {
 
     private Vector<State> group;
-    private String stateName;
     private String name;
-    private int stateNumber;
+    
     
 
     public StateGroup(String name ) {

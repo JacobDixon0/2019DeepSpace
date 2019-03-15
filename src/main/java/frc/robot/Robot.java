@@ -7,25 +7,19 @@
 
 package frc.robot;
 
-import java.util.Queue;
 
-import com.ctre.phoenix.motorcontrol.can.WPI_TalonSRX;
 
+  import com.ctre.phoenix.motorcontrol.can.WPI_TalonSRX;
   import edu.wpi.first.cameraserver.CameraServer;
   import edu.wpi.first.wpilibj.DigitalInput;
   import edu.wpi.first.wpilibj.DoubleSolenoid;
   import edu.wpi.first.wpilibj.Joystick;
-  import edu.wpi.first.wpilibj.PWMTalonSRX;
-  import edu.wpi.first.wpilibj.RobotDrive;
   import edu.wpi.first.wpilibj.Spark;
   import edu.wpi.first.wpilibj.TimedRobot;
   import edu.wpi.first.wpilibj.DoubleSolenoid.Value;
-  import edu.wpi.first.wpilibj.buttons.POVButton;
   import edu.wpi.first.wpilibj.drive.MecanumDrive;
   import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
   import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
-  import io.github.pseudoresonance.pixy2api.Pixy2;
-  import io.github.pseudoresonance.pixy2api.links.I2CLink;
   import frc.robot.state_machine.*;
   
   import frc.robot.Pixy2Handler;
@@ -59,15 +53,10 @@ public class Robot extends TimedRobot {
 
   private DigitalInput m_limitSwitchBottom;
   private DigitalInput m_limitSwitchTop;
-  private enum ElevatorDirection {STOPPED, UP, DOWN};
-  private ElevatorDirection elevatorPosition = ElevatorDirection.STOPPED;
   
   // Camera
   private Pixy2Handler m_pixy2;
-  private int thetaError;
-  private double thetaConstant = 0.5;
-  private int xError;
-  private double xConstant = 0.5;
+  
   
   // State
   private boolean m_startClimb = false; 
@@ -192,8 +181,8 @@ public class Robot extends TimedRobot {
   @Override
   public void teleopPeriodic() {
 
-    m_pixy2.sendRequest(m_pixy2.CHECKSUM_GETMAINFEATURES);
-    m_pixy2.printLocalCache();
+    //m_pixy2.sendRequest(m_pixy2.CHECKSUM_GETMAINFEATURES);
+    //m_pixy2.printLocalCache();
 
     ///////////////////////////////////////////////////////////////////////////
     // Driving Code
@@ -218,7 +207,7 @@ public class Robot extends TimedRobot {
 
     if (m_stick.getRawButton(4)){
 
-      //TODO check if the angle works in both directions
+      
       double angleError = m_pixy2.getVector().neg().angle() - Math.PI/2.0;
       
       Vector2D c = m_pixy2.centerPixy();
@@ -229,16 +218,16 @@ public class Robot extends TimedRobot {
       double t2 = l2.y()-l1.y();
       double xError = Math.sqrt((t1*t1) / (t2*t2));
      
-      SmartDashboard.putNumber("angleError", angleError);
-      SmartDashboard.putNumber("xError", xError);
+      //SmartDashboard.putNumber("angleError", angleError);
+      //SmartDashboard.putNumber("xError", xError);
       
       //Corection
-      double C = 0.5;
-      double S = 0.5;
-      m_robotDrive.driveCartesian(-speed*x, xError*C, angleError*C);
+      double thetaProp = 0.5;
+      double xProp = 0.5;
+
+      m_robotDrive.driveCartesian(-speed*x, xError*xProp, angleError*thetaProp);
       
-      double thetaProp;
-      double xProp;
+      
      // m_robotDrive.driveCartesian(xProp, speed*y, thetaProp);
     } else {
       m_robotDrive.driveCartesian(-speed*x, speed*y, -speed*z);
@@ -273,8 +262,8 @@ public class Robot extends TimedRobot {
 
     if (m_gamePad.getRawAxis(1) > 0) {
       if (!m_limitSwitchBottom.get()) {
-        m_elevatorRight.set(0.1);
-        m_elevatorLeft.set(0.1);
+        m_elevatorRight.set(0.07);
+        m_elevatorLeft.set(0.07);
       } else {
         m_elevatorRight.set(-m_gamePad.getRawAxis(1)*eSpeed);
         m_elevatorLeft.set(-m_gamePad.getRawAxis(1)*eSpeed);
@@ -283,8 +272,8 @@ public class Robot extends TimedRobot {
     }
     else if (m_gamePad.getRawAxis(1) < 0) {
       if (!m_limitSwitchTop.get()) {
-        m_elevatorRight.set(0.1);
-        m_elevatorLeft.set(0.1);
+        m_elevatorRight.set(0.07);
+        m_elevatorLeft.set(0.07);
       } else {
         m_elevatorRight.set(-m_gamePad.getRawAxis(1)*eSpeed);
         m_elevatorLeft.set(-m_gamePad.getRawAxis(1)*eSpeed);
@@ -293,8 +282,8 @@ public class Robot extends TimedRobot {
     }
     else if (m_gamePad.getRawAxis(1) == 0){
       //if (!m_limitSwitchTop.get()) {
-        m_elevatorRight.set(0);
-        m_elevatorLeft.set(0);
+        m_elevatorRight.set(0.07);
+        m_elevatorLeft.set(0.07);
       /*}
       else {
         m_elevatorRight.set(0.05);
@@ -305,8 +294,8 @@ public class Robot extends TimedRobot {
 
 
     
-    SmartDashboard.putBoolean("top", !m_limitSwitchTop.get());
-    SmartDashboard.putBoolean("Bottem", m_limitSwitchBottom.get());
+    //SmartDashboard.putBoolean("top", !m_limitSwitchTop.get());
+    //SmartDashboard.putBoolean("Bottem", m_limitSwitchBottom.get());
 
     
 
@@ -339,10 +328,10 @@ public class Robot extends TimedRobot {
    
     
 
-    SmartDashboard.putNumber("x0", m_pixy2.x0());
-    SmartDashboard.putNumber("x1", m_pixy2.x1()); 
-    SmartDashboard.putNumber("y0", m_pixy2.y0());
-    SmartDashboard.putNumber("y1", m_pixy2.y1());
+    //SmartDashboard.putNumber("x0", m_pixy2.x0());
+    //SmartDashboard.putNumber("x1", m_pixy2.x1()); 
+    //SmartDashboard.putNumber("y0", m_pixy2.y0());
+    //SmartDashboard.putNumber("y1", m_pixy2.y1());
     ///////////////////////////////////////////////////////////////////////////
 
     // Extender
@@ -370,10 +359,9 @@ public class Robot extends TimedRobot {
       m_kicker.set(DoubleSolenoid.Value.kReverse);
     }
 
-    SmartDashboard.putNumber("POV", m_gamePad.getPOV());
 
-    SmartDashboard.putBoolean("getRawButton(8)", m_gamePad.getRawButton(8));
-    SmartDashboard.putBoolean("getRawButton(2)", m_gamePad.getRawButton(2));
+    //SmartDashboard.putBoolean("getRawButton(8)", m_gamePad.getRawButton(8));
+    //SmartDashboard.putBoolean("getRawButton(2)", m_gamePad.getRawButton(2));
 
     if (m_gamePad.getRawButton(8) && m_gamePad.getRawButton(2)) {
       m_startClimb = true;      
@@ -387,8 +375,8 @@ public class Robot extends TimedRobot {
     
     ///////////////////////////////////////////////////////////////////////////
 
-    SmartDashboard.putBoolean("m_startClimb", m_startClimb);
-    SmartDashboard.putBoolean("sm.isDone", sm.isDone());
+    //SmartDashboard.putBoolean("m_startClimb", m_startClimb);
+    //SmartDashboard.putBoolean("sm.isDone", sm.isDone());
 
     if (sm.isDone()){
       m_startClimb = false;
@@ -401,7 +389,7 @@ public class Robot extends TimedRobot {
       sm.reset();
     }
 
-    SmartDashboard.putString("Current State", sm.getName());
+    //SmartDashboard.putString("Current State", sm.getName());
      
        
   }     
