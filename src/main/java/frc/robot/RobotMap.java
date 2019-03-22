@@ -36,10 +36,10 @@ public class RobotMap {
     public static final int kKickerReverse = 3;
     /*public static final int kLockReverse = 0;
     public static final int kLockForward = 1;*/
-    public static final int kClimberFrontForward = 4;
-    public static final int kClimberFrontReverse = 5;
-    public static final int kClimberBackForwards = 0;
-    public static final int kClimberBackReverse = 1;
+    public static final int kClimberFrontForward = 0;
+    public static final int kClimberFrontReverse = 1;
+    public static final int kClimberBackForwards = 4;
+    public static final int kClimberBackReverse = 5;
 
   
     //public static final int liftMotorChannel = 4;

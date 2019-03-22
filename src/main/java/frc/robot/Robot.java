@@ -19,7 +19,6 @@ import edu.wpi.first.wpilibj.drive.MecanumDrive;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import frc.robot.state_machine.*;
-import io.github.pseudoresonance.pixy2api.Pixy2;
 import frc.robot.Pixy2Handler;
 import frc.robot.RobotMap;
 
@@ -53,12 +52,15 @@ public class Robot extends TimedRobot {
 
   // Camera
   private Pixy2Handler m_pixy2;
+  private DigitalInput m_lineFind;
 
   // State
   private boolean m_startClimb = false;
 
   // Autonomous
   private StateMachine sm;
+
+ 
 
   private StateMachine buildStateMachine() {
     StateMachine sm = new StateMachine("ClimbMachine");
@@ -90,11 +92,17 @@ public class Robot extends TimedRobot {
     return x;
   }
 
+  private void elevator(double y){
+    m_elevatorRight.set(y);
+    m_elevatorLeft.set(y);
+  }
+
   @Override
   public void robotInit() {
 
     m_pixy2 = new Pixy2Handler();
     m_pixy2.init();
+    m_lineFind = new DigitalInput(2);
     // Pixy2 m_pixy2 = Pixy2.createInstance(Pixy2.LinkType.I2C);
     
     // Testing pixy2 LED Color
@@ -149,10 +157,7 @@ public class Robot extends TimedRobot {
     m_limitSwitchBottom = new DigitalInput(RobotMap.kLimitSwitchBottom);
     m_limitSwitchTop = new DigitalInput(RobotMap.kLimitSwitchTop);
 
-
-
     sm = buildStateMachine();
-
   }
 
   @Override
@@ -187,7 +192,6 @@ public class Robot extends TimedRobot {
     // Driving Code
 
     double speed = 0.0;
-
     if (m_stick.getRawButton(1)) {
       speed = 1.0; // Overddrive (press trigger)
     } else {
@@ -208,8 +212,8 @@ public class Robot extends TimedRobot {
 
 
 
-
-    if (m_stick.getRawButton(4)) {
+/*
+    if (m_stick.getRawButton(4) && m_pixy2.vectorDetected && Math.abs(m_pixy2.centerLine() - 79/2) < 20 ) {
 
       double angleError = m_pixy2.getVector().neg().angle() - Math.PI / 2.0;
 
@@ -228,26 +232,23 @@ public class Robot extends TimedRobot {
       double thetaProp = .7;
       double xProp = 0;
 
-      m_robotDrive.driveCartesian(-xError * xProp, speed * y, -angleError * thetaProp);
-
+      m_robotDrive.driveCartesian(-angleError * thetaProp, speed * y, -angleError * thetaProp);
+    
       // m_robotDrive.driveCartesian(xProp, speed*y, thetaProp);
     } else {
-      m_robotDrive.driveCartesian(-speed * x, speed * y, -speed * z);
-    }
+*/
+//      if (m_lineFind.get()){
+//        m_robotDrive.driveCartesian(-0 , 0 , -0);
+//      }else {
+        m_robotDrive.driveCartesian(-speed * x, speed * y, -speed * z);
+//      }
+      
+    //}
 
     // manual climb
-    // front Solenoid
-    if (m_stick.getRawButtonPressed(5)) {
-      if (m_frontSolenoid.get() == Value.kReverse) {
-        m_frontSolenoid.set(DoubleSolenoid.Value.kForward);
-      } else if (m_frontSolenoid.get() == Value.kForward) {
-        m_frontSolenoid.set(DoubleSolenoid.Value.kReverse);
-      } else if (m_frontSolenoid.get() == Value.kOff) {
-        m_frontSolenoid.set(DoubleSolenoid.Value.kForward);
-      }
-    }
+
     // Back Solenoid
-    if (m_stick.getRawButtonPressed(6)) {
+    if (m_stick.getRawButtonPressed(5)) {
       if (m_backSolenoid.get() == Value.kReverse) {
         m_backSolenoid.set(DoubleSolenoid.Value.kForward);
       } else if (m_backSolenoid.get() == Value.kForward) {
@@ -256,64 +257,49 @@ public class Robot extends TimedRobot {
         m_backSolenoid.set(DoubleSolenoid.Value.kForward);
       }
     }
+    // front Solenoid
+    if (m_stick.getRawButtonPressed(6)) {
+      if (m_frontSolenoid.get() == Value.kReverse) {
+        m_frontSolenoid.set(DoubleSolenoid.Value.kForward);
+      } else if (m_frontSolenoid.get() == Value.kForward) {
+        m_frontSolenoid.set(DoubleSolenoid.Value.kReverse);
+      } else if (m_frontSolenoid.get() == Value.kOff) {
+        m_frontSolenoid.set(DoubleSolenoid.Value.kForward);
+      }
+    }
+    
 
     ///////////////////////////////////////////////////////////////////////////
     // Elevator
 
-    // m_elevatorRight.set(m_gamePad.getRawAxis(1));
-    // m_elevatorLeft.set(m_gamePad.getRawAxis(1));
     double boost = m_gamePad.getRawAxis(3);
     double eSpeed = ( 0.5 * boost ) + 0.5;
-    
-    //SmartDashboard.putNumber("eSpeed", eSpeed);
+    double eDeadzone = 0.07;
 
-    if (m_gamePad.getRawAxis(1) > 0) {
-      if (!m_limitSwitchBottom.get()) {
-        m_elevatorRight.set(0.07);
-        m_elevatorLeft.set(0.07);
-        eSpeed = 0.0;
+    if (m_gamePad.getRawAxis(1) > 0 && !m_limitSwitchBottom.get()) {
+      elevator(0.07);
+      eSpeed = 0.0;
+    } else if (m_gamePad.getRawAxis(1) < 0 && !m_limitSwitchTop.get()) {
+      elevator(0.07);
+      eSpeed = 0.0;
+    } else if (!m_limitSwitchBottom.get()){
+      elevator(0.07);
+      eSpeed = 0.0;
+    } else{
+      if (Math.abs(m_gamePad.getRawAxis(1)) < eDeadzone){
+        elevator(0.07);
       } else {
-        m_elevatorRight.set(-m_gamePad.getRawAxis(1) * eSpeed);
-        m_elevatorLeft.set(-m_gamePad.getRawAxis(1) * eSpeed);
+        elevator(-m_gamePad.getRawAxis(1) * eSpeed);
       }
-
-    } else if (m_gamePad.getRawAxis(1) < 0) {
-      if (!m_limitSwitchTop.get()) {
-        m_elevatorRight.set(0.07);
-        m_elevatorLeft.set(0.07);
-        eSpeed = 0.0;
-      } else {
-        m_elevatorRight.set(-m_gamePad.getRawAxis(1) * eSpeed);
-        m_elevatorLeft.set(-m_gamePad.getRawAxis(1) * eSpeed);
-      }
-
-    } else if (m_gamePad.getRawAxis(1) == 0) {
-      // if (!m_limitSwitchTop.get()) {
-      m_elevatorRight.set(0.07);
-      m_elevatorLeft.set(0.07);
-      /*
-       * } else { m_elevatorRight.set(0.05); m_elevatorLeft.set(0.05); }
-       */
     }
 
+    
     // SmartDashboard.putBoolean("top", !m_limitSwitchTop.get());
     // SmartDashboard.putBoolean("Bottem", m_limitSwitchBottom.get());
 
-    ///////////////////////////////////////////////////////////////////////////
-
-    // Manual Climer
-
-    /*
-     * if (m_stick.getRawButtonPressed(3)){ if (m_frontSolenoid.get() ==
-     * Value.kForward){ m_frontSolenoid.set(Value.kReverse); } if
-     * (m_frontSolenoid.get() == Value.kReverse){
-     * m_frontSolenoid.set(Value.kForward); } } if (m_stick.getRawButtonPressed(5)){
-     * if (m_backSolenoid.get() == Value.kForward){
-     * m_backSolenoid.set(Value.kReverse); } if (m_backSolenoid.get() ==
-     * Value.kReverse){ m_backSolenoid.set(Value.kForward); } }
-     */
 
     ///////////////////////////////////////////////////////////////////////////
+
     // Pixy2
 
    // SmartDashboard.putNumber("x0", m_pixy2.x0());
@@ -378,6 +364,7 @@ public class Robot extends TimedRobot {
     // SmartDashboard.putString("Current State", sm.getName());
 
   }
+  
   @Override
   public void disabledInit() {
     if (m_pixy2.lampOn) {
@@ -385,3 +372,5 @@ public class Robot extends TimedRobot {
     }
   }
 }
+//JL was here
+// V was here
