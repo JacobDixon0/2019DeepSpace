@@ -7,6 +7,7 @@
 
 package frc.robot;
 
+import com.ctre.phoenix.motorcontrol.can.VictorSPX;
 import com.ctre.phoenix.motorcontrol.can.WPI_TalonSRX;
 import edu.wpi.first.cameraserver.CameraServer;
 import edu.wpi.first.wpilibj.DigitalInput;
@@ -21,6 +22,7 @@ import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import frc.robot.state_machine.*;
 import frc.robot.Pixy2Handler;
 import frc.robot.RobotMap;
+import frc.robot.LineFollowing;
 
 //import com.ctre.phoenix.motorcontrol.can.WPI_TalonSRX;
 
@@ -53,6 +55,7 @@ public class Robot extends TimedRobot {
   // Camera
   private Pixy2Handler m_pixy2;
   private DigitalInput m_lineFind;
+  private LineFollowing m_lineFollower;
 
   // State
   private boolean m_startClimb = false;
@@ -97,18 +100,27 @@ public class Robot extends TimedRobot {
     m_elevatorLeft.set(y);
   }
 
+  private void climb (Joystick j, VictorSPX left, VictorSPX right) {
+    left.setInverted(true);
+    right.setInverted(false);
+
+  }
+
   @Override
   public void robotInit() {
 
     m_pixy2 = new Pixy2Handler();
     m_pixy2.init();
     m_lineFind = new DigitalInput(2);
+    m_lineFollower = new LineFollowing(m_pixy2);
     // Pixy2 m_pixy2 = Pixy2.createInstance(Pixy2.LinkType.I2C);
     
     // Testing pixy2 LED Color
 
 
-    CameraServer.getInstance().startAutomaticCapture();
+    CameraServer.getInstance().startAutomaticCapture(0);
+    CameraServer.getInstance().startAutomaticCapture(1);
+
     // Inputs
     m_stick = new Joystick(RobotMap.kJoystick);
     m_gamePad = new Joystick(RobotMap.kGamepad);
@@ -138,6 +150,9 @@ public class Robot extends TimedRobot {
     // Spark frontRight = new Spark(1);
     // Spark rearLeft = new Spark(2);
     // Spark rearRight = new Spark(3);
+
+    VictorSPX climbLeft = new VictorSPX(RobotMap.kClimbLeft);
+    VictorSPX climbRight = new VictorSPX(RobotMap.kClimbRight);
 
     frontLeft.setInverted(true);
     rearLeft.setInverted(true);
@@ -206,45 +221,18 @@ public class Robot extends TimedRobot {
     double y = m_stick.getY();
     double z = m_stick.getThrottle();
 
-
-    //double angleError = m_pixy2.getVector().neg().angle() - Math.PI/2.0;
-    //SmartDashboard.putNumber("aError", angleError);
-
-
-
-/*
-    if (m_stick.getRawButton(4) && m_pixy2.vectorDetected && Math.abs(m_pixy2.centerLine() - 79/2) < 20 ) {
-
-      double angleError = m_pixy2.getVector().neg().angle() - Math.PI / 2.0;
-
-      Vector2D c = m_pixy2.centerPixy();
-      Vector2D l1 = m_pixy2.p0();
-      Vector2D l2 = m_pixy2.getVector();
-
-      double t1 = c.y() * l2.x() - c.y() * l1.x() - c.x() * l2.y() + l1.x() * l2.y() + c.x() * l1.y() - l2.x() * l1.y();
-      double t2 = l2.y() - l1.y();
-      double xError = Math.sqrt((t1 * t1) / (t2 * t2));
-
-      // SmartDashboard.putNumber("angleError", angleError);
-      // SmartDashboard.putNumber("xError", xError);
-
-      // Corection
-      double thetaProp = .7;
-      double xProp = 0;
-
-      m_robotDrive.driveCartesian(-angleError * thetaProp, speed * y, -angleError * thetaProp);
+    SmartDashboard.putBoolean("Locked On", m_lineFollower.lineIsValid());
+    SmartDashboard.putNumber("sidle", m_lineFollower.getSidleError());
+    SmartDashboard.putNumber("Angle", m_lineFollower.getAngleError());
     
-      // m_robotDrive.driveCartesian(xProp, speed*y, thetaProp);
-    } else {
-*/
-//      if (m_lineFind.get()){
-//        m_robotDrive.driveCartesian(-0 , 0 , -0);
-//      }else {
-        m_robotDrive.driveCartesian(-speed * x, speed * y, -speed * z);
-//      }
-      
-    //}
+    SmartDashboard.putNumber("get x",m_lineFollower.getX());
+    SmartDashboard.putNumber("get z",m_lineFollower.getZ());
 
+    if (m_stick.getRawButton(4) && m_lineFollower.lineIsValid()) {
+      m_robotDrive.driveCartesian(m_lineFollower.getX(), speed * y, m_lineFollower.getZ());
+    } else {
+        m_robotDrive.driveCartesian(-speed * x, speed * y, -speed * z);  
+    }
     // manual climb
 
     // Back Solenoid
@@ -272,26 +260,53 @@ public class Robot extends TimedRobot {
     ///////////////////////////////////////////////////////////////////////////
     // Elevator
 
-    double boost = m_gamePad.getRawAxis(3);
-    double eSpeed = ( 0.5 * boost ) + 0.5;
-    double eDeadzone = 0.07;
+    //double boost = m_gamePad.getRawAxis(3);
+    //double eSpeed = ( 0.5 * boost ) + 0.5;
+    double elevatorQuiescentSpeed = 0.05;
+    double elevatorDeadzone = 0.07;
 
+    double elevatorBoost = (m_gamePad.getRawAxis(3) >= 0.5) ? 1.0 : 0.7; 
+    double elevatorCommandedSpeed = elevatorBoost * -m_gamePad.getRawAxis(1);
+    
+    // upperLimitSwitch
+    if (!m_limitSwitchTop.get() && elevatorCommandedSpeed > 0) {
+      // hold the elevator up
+      elevatorCommandedSpeed = elevatorQuiescentSpeed;
+    }
+
+    // lowerLimitSwitch
+    if (!m_limitSwitchBottom.get() && elevatorCommandedSpeed < 0) {
+      // hold the elevator up
+      elevatorCommandedSpeed = elevatorQuiescentSpeed;
+    }
+
+    // Quiescent speed
+    if (Math.abs(m_gamePad.getRawAxis(1)) < elevatorDeadzone) {
+      elevatorCommandedSpeed = elevatorQuiescentSpeed;
+    }
+
+    elevator(elevatorCommandedSpeed);
+
+
+    /*
     if (m_gamePad.getRawAxis(1) > 0 && !m_limitSwitchBottom.get()) {
       elevator(0.07);
       eSpeed = 0.0;
     } else if (m_gamePad.getRawAxis(1) < 0 && !m_limitSwitchTop.get()) {
       elevator(0.07);
       eSpeed = 0.0;
-    } else if (!m_limitSwitchBottom.get()){
-      elevator(0.07);
-      eSpeed = 0.0;
-    } else{
+    } //else if (!m_limitSwitchBottom.get()){
+      //elevator(0.07);
+      //eSpeed = 0.0;
+    //} 
+    else{
       if (Math.abs(m_gamePad.getRawAxis(1)) < eDeadzone){
         elevator(0.07);
       } else {
         elevator(-m_gamePad.getRawAxis(1) * eSpeed);
       }
     }
+    */
 
     
     // SmartDashboard.putBoolean("top", !m_limitSwitchTop.get());
@@ -302,15 +317,12 @@ public class Robot extends TimedRobot {
 
     // Pixy2
 
-   // SmartDashboard.putNumber("x0", m_pixy2.x0());
-    //SmartDashboard.putNumber("x1", m_pixy2.x1());
-    //SmartDashboard.putNumber("y0", m_pixy2.y0());
-    //SmartDashboard.putNumber("y1", m_pixy2.y1());
+    
     ///////////////////////////////////////////////////////////////////////////
 
     // Extender
     if (m_gamePad.getRawButtonPressed(6)) {
-
+      
       // Unusual case - put here just to cover the corner case
       if (m_bumperReach.get() == DoubleSolenoid.Value.kOff) {
         m_bumperReach.set(DoubleSolenoid.Value.kOff);
@@ -373,4 +385,3 @@ public class Robot extends TimedRobot {
   }
 }
 //JL was here
-// V was here

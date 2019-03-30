@@ -23,6 +23,8 @@ public class RobotMap {
     public static final int kRearRightChannel = 23;
     public static final int kElevatorLeft = 24; // set to 24
     public static final int kElevatorRight = 25;
+    public static final int kClimbLeft = 26;
+    public static final int kClimbRight = 27;
 
     // Digital Inputs
     public static final int kLimitSwitchBottom = 0;
