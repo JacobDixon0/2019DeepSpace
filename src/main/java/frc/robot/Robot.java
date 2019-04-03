@@ -5,6 +5,9 @@
 /* the project.                                                               */
 /*----------------------------------------------------------------------------*/
 
+/**
+ * @author Orin Hubert
+ */
 package frc.robot;
 
 import com.ctre.phoenix.motorcontrol.can.VictorSPX;
@@ -188,6 +191,8 @@ public class Robot extends TimedRobot {
     if (!m_pixy2.lampOn){
       m_pixy2.toggleLamp();
     }
+    SmartDashboard.putNumber("Test Speed", 0);
+    SmartDashboard.putNumber("Test Slow", 0);
   }
 
   @Override
@@ -208,9 +213,10 @@ public class Robot extends TimedRobot {
 
     double speed = 0.0;
     if (m_stick.getRawButton(1)) {
-      speed = 1.0; // Overddrive (press trigger)
+      speed = 0.5; // Overddrive (press trigger)
+      
     } else {
-      speed = 0.70; // Normal case (70%)
+      speed = 0.75; // Normal case (70%)
     }
 
     //double x = squareInput(m_stick.getX());
@@ -221,17 +227,16 @@ public class Robot extends TimedRobot {
     double y = m_stick.getY();
     double z = m_stick.getThrottle();
 
-    SmartDashboard.putBoolean("Locked On", m_lineFollower.lineIsValid());
-    SmartDashboard.putNumber("sidle", m_lineFollower.getSidleError());
+    SmartDashboard.putBoolean("Locked On", m_lineFollower.checkLineIsValid());
+    /*SmartDashboard.putNumber("sidle", m_lineFollower.getSidleError());
     SmartDashboard.putNumber("Angle", m_lineFollower.getAngleError());
-    
     SmartDashboard.putNumber("get x",m_lineFollower.getX());
     SmartDashboard.putNumber("get z",m_lineFollower.getZ());
-
-    if (m_stick.getRawButton(4) && m_lineFollower.lineIsValid()) {
+  */
+    if (m_stick.getRawButton(2) && m_lineFollower.checkLineIsValid()) {
       m_robotDrive.driveCartesian(m_lineFollower.getX(), speed * y, m_lineFollower.getZ());
     } else {
-        m_robotDrive.driveCartesian(-speed * x, speed * y, -speed * z);  
+      m_robotDrive.driveCartesian(-speed * x, speed * y, -speed * z);  
     }
     // manual climb
 
@@ -384,4 +389,13 @@ public class Robot extends TimedRobot {
     }
   }
 }
+//the team
 //JL was here
+//Noro
+///josh
+//pj w here
+//Merc
+//Chris Doig
+//Scribble AKA Yaseen
+// Jacob Dixon
+//Angus Khan 
