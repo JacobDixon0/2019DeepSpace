@@ -18,6 +18,7 @@ import edu.wpi.first.wpilibj.DoubleSolenoid;
 import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj.Spark;
 import edu.wpi.first.wpilibj.TimedRobot;
+import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.DoubleSolenoid.Value;
 import edu.wpi.first.wpilibj.drive.MecanumDrive;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
@@ -57,17 +58,19 @@ public class Robot extends TimedRobot {
 
   // Camera
   private Pixy2Handler m_pixy2;
-  private DigitalInput m_lineFind;
+  private boolean pixyStatus = false;
   private LineFollowing m_lineFollower;
 
   // State
-  private boolean m_startClimb = false;
+  //private boolean m_startClimb = false;
 
   // Autonomous
-  private StateMachine sm;
+  //private StateMachine sm;
 
+
+  private Timer debug;
  
-
+/*
   private StateMachine buildStateMachine() {
     StateMachine sm = new StateMachine("ClimbMachine");
 
@@ -88,7 +91,7 @@ public class Robot extends TimedRobot {
 
     return sm;
   }
-
+*/
   private double squareInput(double x) {
     if (x < 0) {
       x = -x * x;
@@ -113,8 +116,7 @@ public class Robot extends TimedRobot {
   public void robotInit() {
 
     m_pixy2 = new Pixy2Handler();
-    m_pixy2.init();
-    m_lineFind = new DigitalInput(2);
+    pixyStatus = m_pixy2.init();
     m_lineFollower = new LineFollowing(m_pixy2);
     // Pixy2 m_pixy2 = Pixy2.createInstance(Pixy2.LinkType.I2C);
     
@@ -137,7 +139,6 @@ public class Robot extends TimedRobot {
     m_bumperReach = new DoubleSolenoid(RobotMap.kSolenoidModule, RobotMap.kBumperReachForward,
         RobotMap.kBumperReachReverse);
     m_kicker = new DoubleSolenoid(RobotMap.kSolenoidModule, RobotMap.kKickerForward, RobotMap.kKickerReverse);
-    // m_lock = new
     // DoubleSolenoid(RobotMap.kSolenoidModule,RobotMap.kLockForward,RobotMap.kLockReverse);
     m_frontSolenoid = new DoubleSolenoid(RobotMap.kSolenoidModule, RobotMap.kClimberFrontForward,
         RobotMap.kClimberFrontReverse);
@@ -154,8 +155,8 @@ public class Robot extends TimedRobot {
     // Spark rearLeft = new Spark(2);
     // Spark rearRight = new Spark(3);
 
-    VictorSPX climbLeft = new VictorSPX(RobotMap.kClimbLeft);
-    VictorSPX climbRight = new VictorSPX(RobotMap.kClimbRight);
+    //VictorSPX climbLeft = new VictorSPX(RobotMap.kClimbLeft);
+    //VictorSPX climbRight = new VictorSPX(RobotMap.kClimbRight);
 
     frontLeft.setInverted(true);
     rearLeft.setInverted(true);
@@ -175,24 +176,32 @@ public class Robot extends TimedRobot {
     m_limitSwitchBottom = new DigitalInput(RobotMap.kLimitSwitchBottom);
     m_limitSwitchTop = new DigitalInput(RobotMap.kLimitSwitchTop);
 
-    sm = buildStateMachine();
+    //sm = buildStateMachine();
+
+    debug = new Timer();
   }
 
   @Override
   public void autonomousInit() {
+    m_bumperReach.set(DoubleSolenoid.Value.kForward);
+    m_frontSolenoid.set(DoubleSolenoid.Value.kReverse);
+    m_backSolenoid.set(DoubleSolenoid.Value.kReverse);
     teleopInit();
   }
 
   @Override
   public void teleopInit() {
-    m_bumperReach.set(DoubleSolenoid.Value.kReverse);
+    //m_bumperReach.set(DoubleSolenoid.Value.kReverse);
     m_frontSolenoid.set(DoubleSolenoid.Value.kReverse);
     m_backSolenoid.set(DoubleSolenoid.Value.kReverse);
     if (!m_pixy2.lampOn){
       m_pixy2.toggleLamp();
     }
-    SmartDashboard.putNumber("Test Speed", 0);
-    SmartDashboard.putNumber("Test Slow", 0);
+
+    debug.reset();
+    debug.start();
+    //SmartDashboard.putNumber("Test Speed", 0);
+    //SmartDashboard.putNumber("Test Slow", 0);
   }
 
   @Override
@@ -200,20 +209,29 @@ public class Robot extends TimedRobot {
     teleopPeriodic();
   }
 
+  private boolean firstTime = true;
+
   @Override
   public void teleopPeriodic() {
+    double start = System.currentTimeMillis();
+    //System.out.println( System.currentTimeMillis() - start );
+    SmartDashboard.putBoolean("pixyStat", pixyStatus);
 
 
-    m_pixy2.sendRequest(m_pixy2.CHECKSUM_GETMAINFEATURES);
-    //m_pixy2.HandleInput();
-    // m_pixy2.printLocalCache();
 
+    if (pixyStatus){
+      m_pixy2.sendRequest(m_pixy2.CHECKSUM_GETMAINFEATURES);
+      //m_pixy2.HandleInput();
+      // m_pixy2.printLocalCache();
+    }
+
+    double time1 = System.currentTimeMillis() - start;
     ///////////////////////////////////////////////////////////////////////////
     // Driving Code
 
     double speed = 0.0;
     if (m_stick.getRawButton(1)) {
-      speed = 0.5; // Overddrive (press trigger)
+      speed = 0.5; // Overdrive (press trigger)
       
     } else {
       speed = 0.75; // Normal case (70%)
@@ -233,7 +251,7 @@ public class Robot extends TimedRobot {
     SmartDashboard.putNumber("get x",m_lineFollower.getX());
     SmartDashboard.putNumber("get z",m_lineFollower.getZ());
   */
-    if (m_stick.getRawButton(2) && m_lineFollower.checkLineIsValid()) {
+    if (pixyStatus && m_stick.getRawButton(2) && m_lineFollower.checkLineIsValid()) {
       m_robotDrive.driveCartesian(m_lineFollower.getX(), speed * y, m_lineFollower.getZ());
     } else {
       m_robotDrive.driveCartesian(-speed * x, speed * y, -speed * z);  
@@ -330,7 +348,7 @@ public class Robot extends TimedRobot {
       
       // Unusual case - put here just to cover the corner case
       if (m_bumperReach.get() == DoubleSolenoid.Value.kOff) {
-        m_bumperReach.set(DoubleSolenoid.Value.kOff);
+        m_bumperReach.set(DoubleSolenoid.Value.kReverse);
       }
 
       if (m_bumperReach.get() == DoubleSolenoid.Value.kForward) {
@@ -352,7 +370,7 @@ public class Robot extends TimedRobot {
 
     // SmartDashboard.putBoolean("getRawButton(8)", m_gamePad.getRawButton(8));
     // SmartDashboard.putBoolean("getRawButton(2)", m_gamePad.getRawButton(2));
-
+    /*
     if (m_gamePad.getRawButton(8) && m_gamePad.getRawButton(2)) {
       m_startClimb = true;
     }
@@ -362,12 +380,12 @@ public class Robot extends TimedRobot {
       m_backSolenoid.set(Value.kReverse);
       m_frontSolenoid.set(Value.kReverse);
     }
-
+*/
     ///////////////////////////////////////////////////////////////////////////
 
     // SmartDashboard.putBoolean("m_startClimb", m_startClimb);
     // SmartDashboard.putBoolean("sm.isDone", sm.isDone());
-
+/*
     if (sm.isDone()) {
       m_startClimb = false;
     }
@@ -377,15 +395,26 @@ public class Robot extends TimedRobot {
     } else {
       sm.reset();
     }
-
+*/
     // SmartDashboard.putString("Current State", sm.getName());
 
+    System.out.println( System.currentTimeMillis() - start );
+
+
+    firstTime = false;
   }
   
   @Override
   public void disabledInit() {
-    if (m_pixy2.lampOn) {
       m_pixy2.toggleLamp();
+  }
+
+  @Override
+  public void disabledPeriodic() {
+    SmartDashboard.putBoolean("pixyStat", pixyStatus);
+    if (pixyStatus) {
+      m_pixy2.sendRequest(m_pixy2.CHECKSUM_GETMAINFEATURES);
+      SmartDashboard.putBoolean("Locked On", m_lineFollower.checkLineIsValid());
     }
   }
 }
@@ -399,3 +428,4 @@ public class Robot extends TimedRobot {
 //Scribble AKA Yaseen
 // Jacob Dixon
 //Angus Khan 
+//JBL Xtreme 2

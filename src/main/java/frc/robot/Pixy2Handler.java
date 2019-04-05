@@ -113,9 +113,10 @@ public class Pixy2Handler{
     I2C pixy = new I2C(Port.kOnboard, 0x54);
     boolean vectorDetected = true;
 
-    public void init(){
-        pixy.writeBulk(CHECKSUM_SETLINEMODE);
+    public boolean init(){
+        boolean status = pixy.writeBulk(CHECKSUM_SETLINEMODE);
         System.out.println("initializing pixy...");
+        return !status;
     }
 
     public void toggleLamp(){
